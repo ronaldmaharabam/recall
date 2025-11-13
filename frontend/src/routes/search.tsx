@@ -90,7 +90,7 @@ export default function SearchPage() {
         );
         if (res.ok) {
             setMsg(`✅ Created topic '${title}'`);
-            setSearchInput(""); // clear the search bar
+            setSearchInput("");
             await refetch();
         } else {
             setMsg("❌ Could not create topic.");
@@ -114,8 +114,34 @@ export default function SearchPage() {
         await refetch();
     }
 
+    async function markDone(title: string) {
+        const res = await fetch(
+            `${API}/mark_done?learner=1&title=${encodeURIComponent(title)}`
+        );
+        if (res.ok) {
+            setMsg(`✔️ Marked '${title}' as done`);
+            await refetch();
+        } else {
+            setMsg("❌ Could not mark done");
+        }
+    }
+
+    async function deleteTopic(title: string) {
+        const ok = confirm(`Delete topic '${title}'?`);
+        if (!ok) return;
+        const res = await fetch(
+            `${API}/delete_topic?title=${encodeURIComponent(title)}`
+        );
+        if (res.ok) {
+            setMsg(`🗑️ Deleted '${title}'`);
+            await refetch();
+        } else {
+            setMsg("❌ Could not delete topic");
+        }
+    }
+
     return (
-        <main class="min-h-screen bg-gray-50 text-gray-900 p-8">
+        <main class="bg-gray-50 text-gray-900 p-8">
             <div class="max-w-8xl mx-auto">
                 <h1 class="text-3xl font-semibold mb-6">Search & Review</h1>
 
@@ -214,31 +240,50 @@ export default function SearchPage() {
                                                         {(t.forgetness * 100).toFixed(1)}%
                                                     </td>
                                                     <td class="p-2 text-right">
-                                                        <Show
-                                                            when={reviewing() === t.title}
-                                                            fallback={
-                                                                <button
-                                                                    class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm"
-                                                                    onClick={() => setReviewing(t.title)}
-                                                                >
-                                                                    Review
-                                                                </button>
-                                                            }
-                                                        >
-                                                            <div class="flex justify-end gap-1">
-                                                                <For each={[0, 1, 2, 3]}>
-                                                                    {(s) => (
-                                                                        <button
-                                                                            class="bg-gray-200 hover:bg-blue-500 hover:text-white text-sm rounded px-2 py-1"
-                                                                            onClick={() => handleScore(t.title, s)}
-                                                                        >
-                                                                            {s}
-                                                                        </button>
-                                                                    )}
-                                                                </For>
-                                                            </div>
-                                                        </Show>
+                                                        <div class="flex justify-end gap-2">
+
+                                                            <button
+                                                                class="text-green-700 hover:text-green-900 text-sm"
+                                                                onClick={() => markDone(t.title as string)}
+                                                            >
+                                                                Done
+                                                            </button>
+
+
+                                                            <Show
+                                                                when={reviewing() === t.title}
+                                                                fallback={
+                                                                    <button
+                                                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm"
+                                                                        onClick={() => setReviewing(t.title as string)}
+                                                                    >
+                                                                        Review
+                                                                    </button>
+                                                                }
+                                                            >
+                                                                <div class="flex justify-end gap-1">
+                                                                    <For each={[0, 1, 2, 3]}>
+                                                                        {(s: number) => (
+                                                                            <button
+                                                                                class="bg-gray-200 hover:bg-blue-500 hover:text-white text-sm rounded px-2 py-1"
+                                                                                onClick={() => handleScore(t.title as string, s)}
+                                                                            >
+                                                                                {s}
+                                                                            </button>
+                                                                        )}
+                                                                    </For>
+                                                                </div>
+                                                            </Show>
+                                                            <button
+                                                                class="text-red-600 hover:text-red-800 text-sm"
+                                                                onClick={() => deleteTopic(t.title as string)}
+                                                            >
+                                                                ✕
+                                                            </button>
+
+                                                        </div>
                                                     </td>
+
                                                 </tr>
                                             )}
                                         </For>
@@ -258,14 +303,32 @@ export default function SearchPage() {
                                     <For each={filteredUnreviewed()}>
                                         {(t: any) => (
                                             <li class="flex items-center justify-between border-b pb-1 whitespace-nowrap overflow-hidden text-ellipsis">
-                                                <div class="max-w-[70%] truncate">{t.title}</div>
-                                                <button
-                                                    class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm"
-                                                    onClick={() => handleScore(t.title, 3)}
-                                                >
-                                                    Mark Reviewed
-                                                </button>
+                                                <div class="max-w-[60%] truncate">{t.title}</div>
+
+                                                <div class="flex gap-2">
+                                                    <button
+                                                        class="text-green-700 hover:text-green-900 text-sm"
+                                                        onClick={() => markDone(t.title as string)}
+                                                    >
+                                                        ✓
+                                                    </button>
+
+                                                    <button
+                                                        class="text-red-600 hover:text-red-800 text-sm"
+                                                        onClick={() => deleteTopic(t.title as string)}
+                                                    >
+                                                        ✕
+                                                    </button>
+
+                                                    <button
+                                                        class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-sm"
+                                                        onClick={() => handleScore(t.title as string, 3)}
+                                                    >
+                                                        Review
+                                                    </button>
+                                                </div>
                                             </li>
+
                                         )}
                                     </For>
                                 </ul>

@@ -30,17 +30,11 @@ export default function App() {
                             </div>
                         </nav>
                     </header>
-                    {/* Main Content — no max-w so child pages control width */}
+                    {/* Main Content */}
                     <main class="flex-1 w-full px-4 py-6">
                         <Suspense fallback={<p>Loading...</p>}>{props.children}</Suspense>
                     </main>
 
-                    {/* Footer */}
-                    <footer class="bg-white border-t mt-8">
-                        <div class="max-w-5xl mx-auto px-4 py-3 text-sm text-gray-500">
-                            Built with Solid Start + Tailwind CSS
-                        </div>
-                    </footer>
                 </div>
             )}
         >

@@ -22,6 +22,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	_, err = db.Exec("PRAGMA foreign_keys = ON")
+	if err != nil {
+		log.Fatal("failed to enable foreign keys:", err)
+	}
+
 	createSchema()
 
 	mux := http.NewServeMux()
@@ -32,6 +38,10 @@ func main() {
 	mux.HandleFunc("/search_topics", searchTopics)
 	mux.HandleFunc("/add_review", addReview)
 	mux.HandleFunc("/scores", getScores)
+
+	mux.HandleFunc("/delete_group", deleteGroup)
+	mux.HandleFunc("/delete_topic", deleteTopic)
+	mux.HandleFunc("/mark_done", markDone)
 
 	log.Println("Server running on :8080")
 	log.Fatal(http.ListenAndServe(":8080", withCORS(mux)))
@@ -255,9 +265,8 @@ func addReview(w http.ResponseWriter, r *http.Request) {
 
 	isNew := false
 	if err == sql.ErrNoRows {
-		// brand new topic — never reviewed before
 		isNew = true
-		decayRate = math.Log(2) / 1.0 // baseline 1-day decay
+		decayRate = math.Log(2) / 1.0
 		lastT = now
 	}
 
@@ -268,7 +277,6 @@ func addReview(w http.ResponseWriter, r *http.Request) {
 	var nextHalf float64
 
 	if isNew {
-		// ✅ brand new → start at 1-day interval, not doubled
 		nextHalf = 1
 	} else {
 		switch {
@@ -400,3 +408,55 @@ func getScores(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func deleteGroup(w http.ResponseWriter, r *http.Request) {
+	title := strings.TrimSpace(r.URL.Query().Get("title"))
+	if title == "" {
+		writeErr(w, http.ErrNoLocation, 400)
+		return
+	}
+	_, err := db.Exec("DELETE FROM groups WHERE title=?", title)
+	if err != nil {
+		writeErr(w, err, 500)
+		return
+	}
+	writeJSON(w, map[string]string{"status": "ok"})
+}
+
+func deleteTopic(w http.ResponseWriter, r *http.Request) {
+	title := strings.TrimSpace(r.URL.Query().Get("title"))
+	if title == "" {
+		writeErr(w, http.ErrNoLocation, 400)
+		return
+	}
+	_, err := db.Exec("DELETE FROM topics WHERE title=?", title)
+	if err != nil {
+		writeErr(w, err, 500)
+		return
+	}
+	writeJSON(w, map[string]string{"status": "ok"})
+}
+
+func markDone(w http.ResponseWriter, r *http.Request) {
+	learnerID, _ := strconv.Atoi(r.URL.Query().Get("learner"))
+	if learnerID == 0 {
+		learnerID = 1
+	}
+	title := strings.TrimSpace(r.URL.Query().Get("title"))
+	if title == "" {
+		writeErr(w, http.ErrNoLocation, 400)
+		return
+	}
+
+	_, err := db.Exec(`
+		INSERT INTO learner_topic_state (learner_id, topic_title, decay_rate, last_update)
+		VALUES (?, ?, 0.0, strftime('%s','now'))
+		ON CONFLICT(learner_id, topic_title)
+		DO UPDATE SET decay_rate=0.0
+	`, learnerID, title)
+	if err != nil {
+		writeErr(w, err, 500)
+		return
+	}
+
+	writeJSON(w, map[string]string{"status": "ok"})
+}

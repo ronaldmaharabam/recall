@@ -49,13 +49,36 @@ export default function GroupsPage() {
                 <div class="grid sm:grid-cols-2 gap-4">
                     <For each={groups()}>
                         {(g: any) => (
-                            <A
-                                href={`/search?groups=${encodeURIComponent(g.title)}`}
-                                class="block bg-white shadow rounded-lg p-4 hover:bg-gray-50"
-                            >
-                                <div class="text-lg font-semibold text-blue-700">{g.title}</div>
-                                <div class="text-sm text-gray-600">{g.count} topics</div>
-                            </A>
+                            <div class="relative">
+                                <A
+                                    href={`/search?groups=${encodeURIComponent(g.title)}`}
+                                    class="block bg-white shadow rounded-lg p-4 hover:bg-gray-50"
+                                >
+                                    <div class="text-lg font-semibold text-blue-700">{g.title}</div>
+                                    <div class="text-sm text-gray-600">{g.count} topics</div>
+                                </A>
+
+                                <button
+                                    class="absolute top-2 right-2 text-red-600 hover:text-red-800"
+                                    onClick={async (e) => {
+                                        e.preventDefault();
+                                        const ok = confirm(`Delete group "${g.title}"?`);
+                                        if (!ok) return;
+
+                                        const res = await fetch(
+                                            `${API}/delete_group?title=${encodeURIComponent(g.title)}`
+                                        );
+                                        if (res.ok) {
+                                            setMsg(`🗑️ Deleted group: ${g.title}`);
+                                            refetch();
+                                        } else {
+                                            setMsg("❌ Failed to delete group");
+                                        }
+                                    }}
+                                >
+                                    ✖
+                                </button>
+                            </div>
                         )}
                     </For>
                 </div>
